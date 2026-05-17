@@ -1,2 +1,776 @@
-# lead-finder
-A lightweight, single-file SaaS web app for finding, managing, and organizing leads without any backend. Built using HTML, CSS, and JavaScript with LocalStorage as a database.
+@@ -0,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeadFinder — US B2B Lead Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+:root {
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#18181f;--bg4:#1e1e28;--bg5:#232330;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--border3:rgba(255,255,255,0.2);
+  --text:#f0f0f5;--text2:#888899;--text3:#555566;
+  --accent:#6c63ff;--accent2:#9d97ff;--accent-bg:rgba(108,99,255,0.12);--accent-border:rgba(108,99,255,0.3);
+  --green:#22d3a5;--green-bg:rgba(34,211,165,0.1);--green-border:rgba(34,211,165,0.25);
+  --amber:#f5a623;--amber-bg:rgba(245,166,35,0.1);--amber-border:rgba(245,166,35,0.25);
+  --red:#ff5f6d;--red-bg:rgba(255,95,109,0.1);--red-border:rgba(255,95,109,0.25);
+  --blue:#38bdf8;--blue-bg:rgba(56,189,248,0.1);--blue-border:rgba(56,189,248,0.25);
+  --pink:#f472b6;--pink-bg:rgba(244,114,182,0.1);
+  --teal:#2dd4bf;--teal-bg:rgba(45,212,191,0.1);--teal-border:rgba(45,212,191,0.25);
+  --admin:#ff9d4d;--admin-bg:rgba(255,157,77,0.1);--admin-border:rgba(255,157,77,0.25);
+  --r:10px;--rl:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:rgba(10,10,15,0.95);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;letter-spacing:-.3px}
+.logo-icon{width:30px;height:30px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green);background:var(--green-bg);padding:4px 10px;border-radius:999px;border:1px solid var(--green-border);font-family:'DM Mono',monospace}
+.live-badge::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.admin-btn{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--admin);background:var(--admin-bg);padding:4px 12px;border-radius:999px;border:1px solid var(--admin-border);font-family:'DM Mono',monospace;cursor:pointer;transition:all .15s;white-space:nowrap}
+.admin-btn:hover{background:rgba(255,157,77,0.2)}
+
+.main{display:flex;min-height:calc(100vh - 57px)}
+
+.sidebar{width:250px;flex-shrink:0;border-right:1px solid var(--border);padding:22px 18px;background:var(--bg);display:flex;flex-direction:column;gap:26px}
+.sb-section h3{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.filter-group{display:flex;flex-direction:column;gap:3px}
+.fo{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border:1px solid transparent}
+.fo:hover{background:var(--bg3);color:var(--text)}
+.fo.active{background:var(--accent-bg);color:var(--accent2);border-color:var(--accent-border);font-weight:500}
+.fc{font-size:11px;font-family:'DM Mono',monospace;background:var(--bg4);padding:1px 6px;border-radius:4px;color:var(--text3)}
+.fo.active .fc{background:rgba(108,99,255,.25);color:var(--accent2)}
+.chip-row{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:4px 10px;border-radius:999px;font-size:11px;cursor:pointer;border:1px solid var(--border);color:var(--text2);background:transparent;transition:all .15s}
+.chip:hover{border-color:var(--border2);color:var(--text)}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+
+.content{flex:1;padding:26px 30px;overflow-x:hidden}
+.toolbar{display:flex;gap:9px;margin-bottom:22px;flex-wrap:wrap;align-items:center}
+.sw{position:relative;flex:1;min-width:200px}
+.sw svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.3;pointer-events:none}
+.si{width:100%;padding:9px 11px 9px 36px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .15s}
+.si::placeholder{color:var(--text3)}
+.si:focus{border-color:var(--accent)}
+select.st{padding:9px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer}
+select.st option{background:var(--bg2)}
+.btn{padding:9px 16px;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--text2);background:var(--bg3);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--border2);color:var(--text)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#7c74ff}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.danger{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:22px}
+.sc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:15px 17px}
+.sl{font-size:10px;color:var(--text3);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
+.sv{font-size:24px;font-weight:600;letter-spacing:-.5px}
+.sv.green{color:var(--green)}.sv.accent{color:var(--accent2)}.sv.amber{color:var(--amber)}.sv.blue{color:var(--blue)}
+
+.result-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.rl{font-size:12px;color:var(--text3)}
+.leads{display:flex;flex-direction:column;gap:7px}
+.lcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:15px 17px;display:flex;gap:13px;align-items:flex-start;transition:all .15s}
+.lcard:hover{border-color:var(--border2);background:var(--bg3)}
+.lcard.admin-lead{border-color:var(--admin-border)}
+.av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.lb{flex:1;min-width:0}
+.lnr{display:flex;align-items:center;gap:7px;margin-bottom:2px;flex-wrap:wrap}
+.lname{font-size:14px;font-weight:500}
+.vbadge{font-size:10px;padding:2px 7px;border-radius:999px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);font-family:'DM Mono',monospace}
+.abadge{font-size:10px;padding:2px 7px;border-radius:999px;background:var(--admin-bg);color:var(--admin);border:1px solid var(--admin-border);font-family:'DM Mono',monospace}
+.lrole{font-size:12px;color:var(--text2);margin-bottom:7px}
+.ltags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
+.tag{font-size:11px;padding:2px 8px;border-radius:999px;font-family:'DM Mono',monospace}
+.t-saas{background:rgba(108,99,255,.15);color:#a09eff;border:1px solid rgba(108,99,255,.2)}
+.t-fin{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.t-hc{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.t-ec{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.t-ag{background:var(--pink-bg);color:var(--pink);border:1px solid rgba(244,114,182,.2)}
+.t-ot{background:rgba(255,255,255,.04);color:var(--text2);border:1px solid var(--border)}
+.t-sm{background:rgba(255,255,255,.04);color:var(--text3);border:1px solid var(--border)}
+.t-fund{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border)}
+.t-email{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);cursor:default}
+.sbar{display:flex;align-items:center;gap:7px}
+.strack{flex:1;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.sfill{height:100%;border-radius:2px}
+.slbl{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;min-width:22px;text-align:right}
+.lactions{display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0}
+.bsm{padding:5px 11px;font-size:11px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--bg4);color:var(--text2);font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s}
+.bsm:hover{border-color:var(--border2);color:var(--text)}
+.bsm.saved{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.bsm.email-btn{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border)}
+.bsm.del-btn{background:var(--red-bg);color:var(--red);border-color:var(--red-border);display:none}
+.admin-mode .del-btn{display:block}
+
+.pagination{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:22px}
+.pagination span{font-size:12px;color:var(--text3)}
+
+/* ADMIN BAR */
+.admin-bar{display:none;background:var(--admin-bg);border-bottom:1px solid var(--admin-border);padding:10px 28px;align-items:center;justify-content:space-between}
+.admin-bar.show{display:flex}
+.admin-bar span{font-size:12px;color:var(--admin);font-family:'DM Mono',monospace}
+.admin-bar-actions{display:flex;gap:8px}
+
+/* MODALS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:28px;max-width:560px;width:100%;position:relative;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:18px;font-weight:500;margin-bottom:5px}
+.modal .sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+.mclose{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1;padding:2px 8px}
+.mclose:hover{color:var(--text)}
+textarea.mta{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:11px;resize:vertical;min-height:160px;outline:none;line-height:1.6;transition:border .15s}
+textarea.mta:focus{border-color:var(--accent)}
+.mactions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.gen-msg{font-size:12px;color:var(--accent2);margin-top:6px;font-family:'DM Mono',monospace;display:none}
+
+/* Email send section */
+.send-section{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+.send-section .sec-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field-row.full{grid-template-columns:1fr}
+.field-wrap{display:flex;flex-direction:column;gap:5px}
+.field-wrap label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.field-wrap input{padding:9px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .15s}
+.field-wrap input:focus{border-color:var(--accent)}
+.send-status{font-size:12px;padding:8px 12px;border-radius:var(--r);margin-top:8px;display:none;font-family:'DM Mono',monospace;line-height:1.5}
+.send-status.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.send-status.err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.send-status.info{background:var(--accent-bg);color:var(--accent2);border:1px solid var(--accent-border)}
+.emailjs-note{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6}
+.emailjs-note a{color:var(--accent2);text-decoration:none}
+.emailjs-note a:hover{text-decoration:underline}
+
+/* Admin add form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:11px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase}
+.form-field input,.form-field select{padding:9px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .15s}
+.form-field input:focus,.form-field select:focus{border-color:var(--admin)}
+.form-field select option{background:var(--bg2)}
+
+/* Login */
+.login-wrap{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;padding:10px 0}
+.lock-icon{font-size:38px;margin-bottom:4px}
+.login-wrap input{width:100%;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:15px;outline:none;text-align:center;letter-spacing:4px;transition:border .15s}
+.login-wrap input:focus{border-color:var(--admin)}
+.login-err{font-size:12px;color:var(--red);display:none;font-family:'DM Mono',monospace}
+.pw-hint{font-size:11px;color:var(--text3)}
+.pw-hint code{font-family:'DM Mono',monospace;color:var(--accent2)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:11px 18px;border-radius:var(--r);font-size:12px;font-family:'DM Mono',monospace;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;max-width:280px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.toast.err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.toast.info{background:var(--accent-bg);color:var(--accent2);border:1px solid var(--accent-border)}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+@media(max-width:768px){
+  .sidebar{display:none}.content{padding:14px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lcard{flex-wrap:wrap}.lactions{flex-direction:row;flex-wrap:wrap}
+  .form-grid,.field-row{grid-template-columns:1fr}
+  .admin-bar{flex-direction:column;gap:10px;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-icon">L</div>
+    LeadFinder
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge" id="live-count">50 leads</div>
+    <div class="admin-btn" id="admin-toggle" onclick="openAdminLogin()">&#9881; Admin</div>
+  </div>
+</header>
+
+<!-- ADMIN BAR -->
+<div class="admin-bar" id="admin-bar">
+  <span>&#9888;&nbsp; Admin mode active — you can add, edit &amp; delete leads</span>
+  <div class="admin-bar-actions">
+    <button class="btn" style="font-size:12px;padding:6px 14px;color:var(--admin);border-color:var(--admin-border);background:var(--admin-bg)" onclick="openAddLead()">+ Add lead manually</button>
+    <button class="btn danger" style="font-size:12px;padding:6px 14px" onclick="exitAdmin()">Exit admin</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-section">
+      <h3>Industry</h3>
+      <div class="filter-group" id="ind-filters">
+        <div class="fo active" data-v="" onclick="setInd(this)">All industries <span class="fc" id="cnt-all">0</span></div>
+        <div class="fo" data-v="SaaS" onclick="setInd(this)">SaaS <span class="fc" id="cnt-saas">0</span></div>
+        <div class="fo" data-v="Fintech" onclick="setInd(this)">Fintech <span class="fc" id="cnt-fin">0</span></div>
+        <div class="fo" data-v="Healthcare" onclick="setInd(this)">Healthcare <span class="fc" id="cnt-hc">0</span></div>
+        <div class="fo" data-v="E-commerce" onclick="setInd(this)">E-commerce <span class="fc" id="cnt-ec">0</span></div>
+        <div class="fo" data-v="Agency" onclick="setInd(this)">Agency <span class="fc" id="cnt-ag">0</span></div>
+        <div class="fo" data-v="Other" onclick="setInd(this)">Other <span class="fc" id="cnt-ot">0</span></div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <h3>Company size</h3>
+      <div class="chip-row" id="size-chips">
+        <span class="chip active" data-v="All" onclick="setSize(this)">All</span>
+        <span class="chip" data-v="1-50" onclick="setSize(this)">1–50</span>
+        <span class="chip" data-v="51-200" onclick="setSize(this)">51–200</span>
+        <span class="chip" data-v="201-1000" onclick="setSize(this)">201–1K</span>
+        <span class="chip" data-v="1000+" onclick="setSize(this)">1K+</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <h3>Funding stage</h3>
+      <div class="chip-row" id="fund-chips">
+        <span class="chip active" data-v="All" onclick="setFund(this)">All</span>
+        <span class="chip" data-v="Bootstrapped" onclick="setFund(this)">Bootstrap</span>
+        <span class="chip" data-v="Seed" onclick="setFund(this)">Seed</span>
+        <span class="chip" data-v="Series A" onclick="setFund(this)">Series A</span>
+        <span class="chip" data-v="Series B+" onclick="setFund(this)">Series B+</span>
+        <span class="chip" data-v="Public" onclick="setFund(this)">Public</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <h3>Role level</h3>
+      <div class="chip-row" id="role-chips">
+        <span class="chip active" data-v="All" onclick="setRole(this)">All</span>
+        <span class="chip" data-v="Founder" onclick="setRole(this)">Founder</span>
+        <span class="chip" data-v="VP" onclick="setRole(this)">VP</span>
+        <span class="chip" data-v="Director" onclick="setRole(this)">Director</span>
+        <span class="chip" data-v="Head" onclick="setRole(this)">Head of</span>
+        <span class="chip" data-v="CXO" onclick="setRole(this)">CXO</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <h3>Min fit score: <span id="score-lbl" style="color:var(--accent2);font-family:'DM Mono',monospace">50</span></h3>
+      <input type="range" min="50" max="97" value="50" id="score-range" oninput="setScore(this)" style="width:100%;accent-color:var(--accent);margin-top:8px">
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content" id="main-content">
+    <div class="toolbar">
+      <div class="sw">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="si" id="q" type="text" placeholder="Search name, role, company, city…" oninput="applyFilters()">
+      </div>
+      <select class="st" id="sort" onchange="applyFilters()">
+        <option value="score">Fit score ↓</option>
+        <option value="name">Name A–Z</option>
+        <option value="company">Company A–Z</option>
+      </select>
+      <button class="btn primary" onclick="generateMore()">+ Generate leads</button>
+    </div>
+
+    <div class="stats">
+      <div class="sc"><div class="sl">Total leads</div><div class="sv accent" id="s-total">0</div></div>
+      <div class="sc"><div class="sl">Filtered</div><div class="sv" id="s-shown">0</div></div>
+      <div class="sc"><div class="sl">High score 85+</div><div class="sv green" id="s-high">0</div></div>
+      <div class="sc"><div class="sl">Saved</div><div class="sv amber" id="s-saved">0</div></div>
+    </div>
+
+    <div class="result-row">
+      <span class="rl" id="result-label">Loading…</span>
+      <span class="rl" id="ai-status" style="color:var(--accent2)"></span>
+    </div>
+    <div id="leads-wrap" class="leads"></div>
+    <div class="pagination">
+      <button class="btn" id="prev-btn" onclick="prevPage()" disabled>← Prev</button>
+      <span id="page-label">Page 1 of 1</span>
+      <button class="btn" id="next-btn" onclick="nextPage()">Next →</button>
+    </div>
+  </main>
+</div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="overlay" id="login-modal">
+  <div class="modal" style="max-width:380px">
+    <button class="mclose" onclick="closeModal('login-modal')">×</button>
+    <h2>Admin access</h2>
+    <p class="sub">Restricted to authorized administrators only</p>
+    <div class="login-wrap">
+      <div class="lock-icon">🔐</div>
+      <input type="password" id="admin-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkAdmin()">
+      <div class="login-err" id="login-err">Incorrect password. Try again.</div>
+      <button class="btn primary" style="width:100%" onclick="checkAdmin()">Unlock admin panel</button>
+      <p class="pw-hint">Default password: <code>admin2024</code> — change in source code</p>
+    </div>
+  </div>
+</div>
+
+<!-- ADD LEAD MODAL (ADMIN ONLY) -->
+<div class="overlay" id="add-modal">
+  <div class="modal" style="max-width:600px">
+    <button class="mclose" onclick="closeModal('add-modal')">×</button>
+    <h2>Add lead manually</h2>
+    <p class="sub" style="display:flex;align-items:center;gap:6px"><span style="background:var(--admin-bg);color:var(--admin);border:1px solid var(--admin-border);font-size:10px;padding:2px 8px;border-radius:999px;font-family:'DM Mono',monospace">ADMIN ONLY</span> This lead will be flagged as manually added</p>
+    <div class="form-grid">
+      <div class="form-field"><label>Full name *</label><input id="f-name" type="text" placeholder="Jane Smith"></div>
+      <div class="form-field"><label>Job title *</label><input id="f-role" type="text" placeholder="VP of Sales"></div>
+      <div class="form-field"><label>Company *</label><input id="f-company" type="text" placeholder="Acme Corp"></div>
+      <div class="form-field"><label>Work email</label><input id="f-email" type="email" placeholder="jane@acme.com"></div>
+      <div class="form-field"><label>Industry</label>
+        <select id="f-ind"><option value="SaaS">SaaS</option><option value="Fintech">Fintech</option><option value="Healthcare">Healthcare</option><option value="E-commerce">E-commerce</option><option value="Agency">Agency</option><option value="Other">Other</option></select>
+      </div>
+      <div class="form-field"><label>Company size</label>
+        <select id="f-size"><option value="1-50">1–50</option><option value="51-200">51–200</option><option value="201-1000">201–1,000</option><option value="1000+">1,000+</option></select>
+      </div>
+      <div class="form-field"><label>City, State</label><input id="f-city" type="text" placeholder="San Francisco, CA"></div>
+      <div class="form-field"><label>Funding stage</label>
+        <select id="f-fund"><option value="Bootstrapped">Bootstrapped</option><option value="Seed">Seed</option><option value="Series A">Series A</option><option value="Series B+">Series B+</option><option value="Public">Public</option></select>
+      </div>
+      <div class="form-field full"><label>LinkedIn URL</label><input id="f-linkedin" type="url" placeholder="https://linkedin.com/in/janesmith"></div>
+      <div class="form-field full">
+        <label>Fit score: <span id="f-score-val" style="color:var(--admin);font-family:'DM Mono',monospace">80</span>/100</label>
+        <input type="range" min="50" max="99" value="80" id="f-score" oninput="document.getElementById('f-score-val').textContent=this.value" style="accent-color:var(--admin);width:100%;margin-top:6px">
+      </div>
+      <div class="form-field full"><label>Notes (optional)</label><textarea class="mta" id="f-notes" style="min-height:70px" placeholder="Context about this lead, how they were found, etc."></textarea></div>
+    </div>
+    <div class="mactions">
+      <button class="btn" onclick="closeModal('add-modal')">Cancel</button>
+      <button class="btn" onclick="saveManualLead()" style="background:var(--admin-bg);color:var(--admin);border-color:var(--admin-border)">Add lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL COMPOSE + SEND MODAL -->
+<div class="overlay" id="email-modal">
+  <div class="modal" style="max-width:580px">
+    <button class="mclose" onclick="closeModal('email-modal')">×</button>
+    <h2 id="em-title">Compose email</h2>
+    <p class="sub" id="em-sub">AI-drafted outreach — edit freely before sending</p>
+
+    <div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Email body</div>
+      <textarea class="mta" id="em-body" style="min-height:190px"></textarea>
+      <div class="gen-msg" id="gen-msg">✦ Generating with AI…</div>
+    </div>
+
+    <div class="send-section">
+      <div class="sec-title">Send configuration</div>
+      <div class="field-row">
+        <div class="field-wrap"><label>To (recipient email)</label><input type="email" id="em-to" placeholder="lead@company.com"></div>
+        <div class="field-wrap"><label>Subject line</label><input type="text" id="em-subject" placeholder="Quick note — [Your Company]"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-wrap"><label>Your name</label><input type="text" id="em-from-name" placeholder="Your Name"></div>
+        <div class="field-wrap"><label>Your email (reply-to)</label><input type="email" id="em-from-email" placeholder="you@yourcompany.com"></div>
+      </div>
+      <div class="send-status" id="send-status"></div>
+      <div class="mactions" style="margin-top:12px">
+        <button class="btn" onclick="copyEmail()">Copy body</button>
+        <button class="btn" onclick="openMailto()">&#128231; Open in mail app</button>
+        <button class="btn primary" onclick="sendEmail()">&#10148; Send via EmailJS</button>
+      </div>
+      <p class="emailjs-note">
+        <strong style="color:var(--text2)">"Send via EmailJS"</strong> requires a free account at
+        <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> — add your
+        <code style="font-family:'DM Mono',monospace;color:var(--accent2)">SERVICE_ID</code>,
+        <code style="font-family:'DM Mono',monospace;color:var(--accent2)">TEMPLATE_ID</code>, and
+        <code style="font-family:'DM Mono',monospace;color:var(--accent2)">PUBLIC_KEY</code>
+        at the top of the script. <strong style="color:var(--text2)">"Open in mail app"</strong> works immediately, no setup needed.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  CONFIGURATION — fill in your credentials before publishing
+// ============================================================
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // from emailjs.com dashboard
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // your email template ID
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // your public key
+
+const ADMIN_PASSWORD = 'admin2024';              // CHANGE THIS before publishing!
+
+const API_URL = 'https://api.anthropic.com/v1/messages';
+const MODEL   = 'claude-sonnet-4-20250514';
+// ============================================================
+
+try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch(e){}
+
+const PER_PAGE=10;
+let currentPage=1,filtered=[],savedIds=new Set();
+let activeInd='',activeSize='All',activeFund='All',activeRole='All',minScore=50;
+let isAdmin=false,emailLead=null;
+
+const AVS=[
+  {bg:'rgba(108,99,255,.2)',color:'#a09eff'},{bg:'rgba(34,211,165,.15)',color:'#22d3a5'},
+  {bg:'rgba(56,189,248,.15)',color:'#38bdf8'},{bg:'rgba(245,166,35,.15)',color:'#f5a623'},
+  {bg:'rgba(244,114,182,.15)',color:'#f472b6'},{bg:'rgba(45,212,191,.15)',color:'#2dd4bf'},
+  {bg:'rgba(255,95,109,.15)',color:'#ff5f6d'},{bg:'rgba(255,255,255,.07)',color:'#888899'},
+];
+const TMAP={SaaS:'t-saas',Fintech:'t-fin',Healthcare:'t-hc','E-commerce':'t-ec',Agency:'t-ag',Other:'t-ot'};
+
+const LEADS=[
+  {id:1,name:'Aaron Levie',role:'Co-Founder & CEO',company:'Box',industry:'SaaS',size:'1000+',city:'Redwood City, CA',fund:'Public',score:96,initials:'AL',email:'aaron@box.com'},
+  {id:2,name:'Parker Conrad',role:'Co-Founder & CEO',company:'Rippling',industry:'SaaS',size:'1000+',city:'San Francisco, CA',fund:'Series B+',score:95,initials:'PC',email:'parker@rippling.com'},
+  {id:3,name:'Dhruv Malhotra',role:'Founder & CEO',company:'Anvil',industry:'SaaS',size:'1-50',city:'San Francisco, CA',fund:'Seed',score:88,initials:'DM',email:'dhruv@useanvil.com'},
+  {id:4,name:'Lexi Rodriguez',role:'VP of Marketing',company:'Brex',industry:'Fintech',size:'1000+',city:'San Francisco, CA',fund:'Series B+',score:91,initials:'LR',email:'lexi@brex.com'},
+  {id:5,name:'Marcus Webb',role:'Founder & CEO',company:'Finaloop',industry:'Fintech',size:'51-200',city:'New York, NY',fund:'Series A',score:87,initials:'MW',email:'marcus@finaloop.com'},
+  {id:6,name:'Priya Nair',role:'CTO',company:'Komodo Health',industry:'Healthcare',size:'201-1000',city:'San Francisco, CA',fund:'Series B+',score:90,initials:'PN',email:'priya@komodohealth.com'},
+  {id:7,name:'James Okafor',role:'Founder & CEO',company:'Tendo',industry:'Healthcare',size:'51-200',city:'Chicago, IL',fund:'Series A',score:85,initials:'JO',email:'james@tendo.com'},
+  {id:8,name:'Sofia Chen',role:'Head of Growth',company:'Recharge',industry:'E-commerce',size:'201-1000',city:'Santa Monica, CA',fund:'Series B+',score:83,initials:'SC',email:'sofia@rechargeapps.com'},
+  {id:9,name:'Ryan Kowalski',role:'Founder & CEO',company:'Okendo',industry:'E-commerce',size:'51-200',city:'Austin, TX',fund:'Series A',score:82,initials:'RK',email:'ryan@okendo.io'},
+  {id:10,name:'Amara Osei',role:'Managing Director',company:'Huge',industry:'Agency',size:'201-1000',city:'New York, NY',fund:'Bootstrapped',score:80,initials:'AO',email:'amara@hugeinc.com'},
+  {id:11,name:'Tom Fischer',role:'Founder & CEO',company:'Dept',industry:'Agency',size:'1000+',city:'New York, NY',fund:'Series B+',score:84,initials:'TF',email:'tom@deptagency.com'},
+  {id:12,name:'Natalie Kim',role:'VP of Product',company:'Faire',industry:'E-commerce',size:'1000+',city:'San Francisco, CA',fund:'Series B+',score:89,initials:'NK',email:'natalie@faire.com'},
+  {id:13,name:'Devraj Patel',role:'Founder & CEO',company:'Draftwise',industry:'SaaS',size:'1-50',city:'New York, NY',fund:'Seed',score:86,initials:'DP',email:'devraj@draftwise.com'},
+  {id:14,name:'Laura Simmons',role:'Chief Revenue Officer',company:'Ripple',industry:'Fintech',size:'201-1000',city:'San Francisco, CA',fund:'Series B+',score:88,initials:'LS',email:'laura@ripple.com'},
+  {id:15,name:'Kevin Park',role:'Director of Sales',company:'Samsara',industry:'SaaS',size:'1000+',city:'San Francisco, CA',fund:'Public',score:85,initials:'KP',email:'kevin@samsara.com'},
+  {id:16,name:'Mia Torres',role:'Founder & CEO',company:'Medallion',industry:'Healthcare',size:'51-200',city:'San Francisco, CA',fund:'Series A',score:91,initials:'MT',email:'mia@medallion.co'},
+  {id:17,name:'Elijah Grant',role:'Head of Partnerships',company:'Adyen',industry:'Fintech',size:'1000+',city:'New York, NY',fund:'Public',score:87,initials:'EG',email:'elijah@adyen.com'},
+  {id:18,name:'Hannah Lee',role:'Founder & CEO',company:'Veta Health',industry:'Healthcare',size:'1-50',city:'New York, NY',fund:'Seed',score:79,initials:'HL',email:'hannah@vetahealth.com'},
+  {id:19,name:'Caleb Washington',role:'VP of Engineering',company:'Shopify',industry:'E-commerce',size:'1000+',city:'Remote, US',fund:'Public',score:90,initials:'CW',email:'caleb@shopify.com'},
+  {id:20,name:'Isabel Romero',role:'Founder & CEO',company:'Peel Insights',industry:'E-commerce',size:'1-50',city:'Austin, TX',fund:'Bootstrapped',score:81,initials:'IR',email:'isabel@peelinsights.com'},
+  {id:21,name:'Raj Sundaram',role:'CEO & Co-Founder',company:'Chargebee',industry:'SaaS',size:'201-1000',city:'San Francisco, CA',fund:'Series B+',score:93,initials:'RS',email:'raj@chargebee.com'},
+  {id:22,name:'Tiffany Brooks',role:'CMO',company:'Veeva Systems',industry:'Healthcare',size:'1000+',city:'Pleasanton, CA',fund:'Public',score:88,initials:'TB',email:'tiffany@veeva.com'},
+  {id:23,name:'Omar Hassan',role:'Founder & CEO',company:'Slope',industry:'Fintech',size:'1-50',city:'San Francisco, CA',fund:'Seed',score:83,initials:'OH',email:'omar@slope.so'},
+  {id:24,name:'Grace Liu',role:'Director of Marketing',company:'Attentive',industry:'SaaS',size:'201-1000',city:'New York, NY',fund:'Series B+',score:86,initials:'GL',email:'grace@attentivemobile.com'},
+  {id:25,name:'Ben Horowitz',role:'General Partner',company:'a16z',industry:'Other',size:'201-1000',city:'Menlo Park, CA',fund:'Bootstrapped',score:97,initials:'BH',email:'ben@a16z.com'},
+  {id:26,name:'Zara Elkins',role:'Founder & CEO',company:'Trove',industry:'E-commerce',size:'51-200',city:'Dallas, TX',fund:'Series A',score:80,initials:'ZE',email:'zara@trove.com'},
+  {id:27,name:'Nathan Cho',role:'Head of Sales',company:'Gong',industry:'SaaS',size:'1000+',city:'San Francisco, CA',fund:'Series B+',score:89,initials:'NC',email:'nathan@gong.io'},
+  {id:28,name:'Aisha Williams',role:'Founder & CEO',company:'Blaze',industry:'Agency',size:'1-50',city:'Atlanta, GA',fund:'Bootstrapped',score:77,initials:'AW',email:'aisha@blaze.today'},
+  {id:29,name:'Lucas Hoffmann',role:'VP of Finance',company:'Stripe',industry:'Fintech',size:'1000+',city:'San Francisco, CA',fund:'Series B+',score:92,initials:'LH',email:'lucas@stripe.com'},
+  {id:30,name:'Diane Marsh',role:'VP of Engineering',company:'Netflix',industry:'Other',size:'1000+',city:'Los Gatos, CA',fund:'Public',score:94,initials:'DM',email:'diane@netflix.com'},
+  {id:31,name:'Chris Herd',role:'Founder & CEO',company:'Firstbase',industry:'SaaS',size:'51-200',city:'Remote, US',fund:'Series A',score:85,initials:'CH',email:'chris@firstbase.io'},
+  {id:32,name:'Fatima Al-Rashid',role:'Co-Founder & COO',company:'Vida Health',industry:'Healthcare',size:'51-200',city:'San Francisco, CA',fund:'Series A',score:84,initials:'FA',email:'fatima@vida.com'},
+  {id:33,name:'Jordan Price',role:'Director of Partnerships',company:'BigCommerce',industry:'E-commerce',size:'1000+',city:'Austin, TX',fund:'Public',score:82,initials:'JP',email:'jordan@bigcommerce.com'},
+  {id:34,name:'Elena Castro',role:'Founder & CEO',company:'Supernormal',industry:'SaaS',size:'1-50',city:'San Francisco, CA',fund:'Seed',score:87,initials:'EC',email:'elena@supernormal.com'},
+  {id:35,name:'Mike Belsito',role:'Co-Founder',company:'Product Collective',industry:'Agency',size:'1-50',city:'Cleveland, OH',fund:'Bootstrapped',score:75,initials:'MB',email:'mike@productcollective.com'},
+  {id:36,name:'Vivek Sharma',role:'Founder & CEO',company:'Moveworks',industry:'SaaS',size:'201-1000',city:'Mountain View, CA',fund:'Series B+',score:92,initials:'VS',email:'vivek@moveworks.com'},
+  {id:37,name:'Claudia Monroe',role:'Head of Revenue',company:'Plaid',industry:'Fintech',size:'1000+',city:'San Francisco, CA',fund:'Series B+',score:91,initials:'CM',email:'claudia@plaid.com'},
+  {id:38,name:'David Park',role:'Founder & CEO',company:'Solv Health',industry:'Healthcare',size:'51-200',city:'San Francisco, CA',fund:'Series B+',score:88,initials:'DP',email:'david@solvhealth.com'},
+  {id:39,name:'Samira Patel',role:'VP of Marketing',company:'Klaviyo',industry:'E-commerce',size:'1000+',city:'Boston, MA',fund:'Public',score:90,initials:'SP',email:'samira@klaviyo.com'},
+  {id:40,name:'Tomas Rivera',role:'Founder & CEO',company:'Portent',industry:'Agency',size:'51-200',city:'Seattle, WA',fund:'Bootstrapped',score:78,initials:'TR',email:'tomas@portent.com'},
+  {id:41,name:'Ashley Green',role:'Co-Founder & CEO',company:'Propel',industry:'Fintech',size:'51-200',city:'New York, NY',fund:'Series A',score:86,initials:'AG',email:'ashley@joinpropel.com'},
+  {id:42,name:'Mark Ghermezian',role:'Co-Founder & CEO',company:'Braze',industry:'SaaS',size:'1000+',city:'New York, NY',fund:'Public',score:94,initials:'MG',email:'mark@braze.com'},
+  {id:43,name:'Lena Fox',role:'Founder & CEO',company:'Homebase',industry:'SaaS',size:'201-1000',city:'Houston, TX',fund:'Series B+',score:89,initials:'LF',email:'lena@joinhomebase.com'},
+  {id:44,name:'Samuel Asante',role:'Director of BD',company:'Tempus',industry:'Healthcare',size:'1000+',city:'Chicago, IL',fund:'Series B+',score:87,initials:'SA',email:'samuel@tempus.com'},
+  {id:45,name:'Cora Mitchell',role:'Founder & CEO',company:'Coda',industry:'SaaS',size:'51-200',city:'Mountain View, CA',fund:'Series B+',score:91,initials:'CM',email:'cora@coda.io'},
+  {id:46,name:'Patrick Huang',role:'VP of Sales',company:'Marqeta',industry:'Fintech',size:'1000+',city:'Oakland, CA',fund:'Public',score:88,initials:'PH',email:'patrick@marqeta.com'},
+  {id:47,name:'Jade Thompson',role:'Founder & CEO',company:'Lumi',industry:'E-commerce',size:'51-200',city:'Los Angeles, CA',fund:'Series A',score:82,initials:'JT',email:'jade@lumi.com'},
+  {id:48,name:'Victor Stone',role:'Chief Strategy Officer',company:'Omnicom',industry:'Agency',size:'1000+',city:'New York, NY',fund:'Public',score:86,initials:'VS',email:'victor@omnicomgroup.com'},
+  {id:49,name:'Rosa Alvarez',role:'Founder & CEO',company:'Ramp',industry:'Fintech',size:'201-1000',city:'New York, NY',fund:'Series B+',score:93,initials:'RA',email:'rosa@ramp.com'},
+  {id:50,name:'Ethan Moore',role:'Head of Marketing',company:'Calendly',industry:'SaaS',size:'201-1000',city:'Atlanta, GA',fund:'Series B+',score:85,initials:'EM',email:'ethan@calendly.com'},
+];
+
+let allLeads=[...LEADS];
+
+function sc(s){return s>=85?'#22d3a5':s>=70?'#f5a623':'#ff5f6d'}
+function av(i){return AVS[i%AVS.length]}
+function ini(n){return n.split(' ').map(w=>w[0]).slice(0,2).join('')}
+function tc(ind){return TMAP[ind]||'t-ot'}
+
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type+' show';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function updateCounts(){
+  const c={};allLeads.forEach(l=>c[l.industry]=(c[l.industry]||0)+1);
+  document.getElementById('cnt-all').textContent=allLeads.length;
+  document.getElementById('cnt-saas').textContent=c['SaaS']||0;
+  document.getElementById('cnt-fin').textContent=c['Fintech']||0;
+  document.getElementById('cnt-hc').textContent=c['Healthcare']||0;
+  document.getElementById('cnt-ec').textContent=c['E-commerce']||0;
+  document.getElementById('cnt-ag').textContent=c['Agency']||0;
+  document.getElementById('cnt-ot').textContent=c['Other']||0;
+  document.getElementById('live-count').textContent=allLeads.length+' leads';
+}
+
+function applyFilters(){currentPage=1;render();}
+function setInd(el){document.querySelectorAll('#ind-filters .fo').forEach(e=>e.classList.remove('active'));el.classList.add('active');activeInd=el.dataset.v;applyFilters();}
+function setSize(el){document.querySelectorAll('#size-chips .chip').forEach(e=>e.classList.remove('active'));el.classList.add('active');activeSize=el.dataset.v;applyFilters();}
+function setFund(el){document.querySelectorAll('#fund-chips .chip').forEach(e=>e.classList.remove('active'));el.classList.add('active');activeFund=el.dataset.v;applyFilters();}
+function setRole(el){document.querySelectorAll('#role-chips .chip').forEach(e=>e.classList.remove('active'));el.classList.add('active');activeRole=el.dataset.v;applyFilters();}
+function setScore(el){minScore=parseInt(el.value);document.getElementById('score-lbl').textContent=minScore;applyFilters();}
+
+function getFiltered(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
+  const sort=document.getElementById('sort').value;
+  let res=allLeads.filter(l=>{
+    if(q&&![l.name,l.role,l.company,l.city||''].join(' ').toLowerCase().includes(q)) return false;
+    if(activeInd&&l.industry!==activeInd) return false;
+    if(activeSize!=='All'&&l.size!==activeSize) return false;
+    if(activeFund!=='All'&&l.fund!==activeFund) return false;
+    if(l.score<minScore) return false;
+    if(activeRole!=='All'){
+      const r=l.role.toLowerCase();
+      if(activeRole==='Founder'&&!r.includes('founder')&&!r.includes('ceo')) return false;
+      if(activeRole==='VP'&&!r.includes('vp')&&!r.includes('vice president')) return false;
+      if(activeRole==='Director'&&!r.includes('director')) return false;
+      if(activeRole==='Head'&&!r.includes('head')) return false;
+      if(activeRole==='CXO'&&!r.match(/cto|coo|cmo|cro|cso|chief/)) return false;
+    }
+    return true;
+  });
+  if(sort==='score') res.sort((a,b)=>b.score-a.score);
+  else if(sort==='name') res.sort((a,b)=>a.name.localeCompare(b.name));
+  else res.sort((a,b)=>a.company.localeCompare(b.company));
+  return res;
+}
+
+function render(){
+  filtered=getFiltered();
+  const total=filtered.length,high=filtered.filter(l=>l.score>=85).length;
+  document.getElementById('s-total').textContent=allLeads.length;
+  document.getElementById('s-shown').textContent=total;
+  document.getElementById('s-high').textContent=high;
+  document.getElementById('s-saved').textContent=savedIds.size;
+  updateCounts();
+  const tp=Math.max(1,Math.ceil(total/PER_PAGE));
+  if(currentPage>tp) currentPage=tp;
+  const start=(currentPage-1)*PER_PAGE,page=filtered.slice(start,start+PER_PAGE);
+  document.getElementById('result-label').textContent=`Showing ${total} lead${total!==1?'s':''} · page ${currentPage} of ${tp}`;
+  document.getElementById('page-label').textContent=`Page ${currentPage} of ${tp}`;
+  document.getElementById('prev-btn').disabled=currentPage<=1;
+  document.getElementById('next-btn').disabled=currentPage>=tp;
+  const wrap=document.getElementById('leads-wrap');
+  if(!page.length){wrap.innerHTML='<div style="text-align:center;padding:2.5rem;color:var(--text3);font-size:13px">No leads match your filters</div>';return;}
+  wrap.innerHTML=page.map((l,i)=>{
+    const a=av(start+i),saved=savedIds.has(l.id),t=tc(l.industry);
+    return `<div class="lcard${l.manual?' admin-lead':''}">
+      <div class="av" style="background:${a.bg};color:${a.color}">${l.initials||ini(l.name)}</div>
+      <div class="lb">
+        <div class="lnr">
+          <span class="lname">${l.name}</span>
+          ${l.manual?'<span class="abadge">admin</span>':'<span class="vbadge">verified</span>'}
+        </div>
+        <div class="lrole">${l.role} &middot; ${l.company}</div>
+        <div class="ltags">
+          <span class="tag ${t}">${l.industry}</span>
+          <span class="tag t-sm">${l.size} emp.</span>
+          <span class="tag t-sm">${l.city||'US'}</span>
+          <span class="tag t-fund">${l.fund}</span>
+          ${l.email?`<span class="tag t-email">${l.email}</span>`:''}
+        </div>
+        <div class="sbar">
+          <div class="strack"><div class="sfill" style="width:${l.score}%;background:${sc(l.score)}"></div></div>
+          <span class="slbl">${l.score}</span>
+        </div>
+        ${l.notes?`<div style="font-size:11px;color:var(--text3);margin-top:5px;font-style:italic;line-height:1.5">${l.notes}</div>`:''}
+      </div>
+      <div class="lactions">
+        <button class="bsm ${saved?'saved':''}" onclick="toggleSave(${l.id},this)">${saved?'&#10003; Saved':'Save'}</button>
+        <button class="bsm email-btn" onclick="openEmail(${l.id})">&#9993; Email</button>
+        <button class="bsm del-btn" onclick="deleteLead(${l.id})">&#128465; Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+  if(isAdmin) document.getElementById('main-content').classList.add('admin-mode');
+  else document.getElementById('main-content').classList.remove('admin-mode');
+}
+
+function toggleSave(id,btn){
+  if(savedIds.has(id)){savedIds.delete(id);btn.textContent='Save';btn.classList.remove('saved');}
+  else{savedIds.add(id);btn.innerHTML='&#10003; Saved';btn.classList.add('saved');}
+  document.getElementById('s-saved').textContent=savedIds.size;
+}
+function deleteLead(id){
+  if(!isAdmin){toast('Admin access required','err');return;}
+  if(!confirm('Delete this lead permanently?')) return;
+  allLeads=allLeads.filter(l=>l.id!==id);
+  toast('Lead deleted','ok');render();
+}
+function prevPage(){if(currentPage>1){currentPage--;render();}}
+function nextPage(){const tp=Math.ceil(filtered.length/PER_PAGE);if(currentPage<tp){currentPage++;render();}}
+
+// MODALS
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+
+// ADMIN LOGIN
+function openAdminLogin(){
+  if(isAdmin){exitAdmin();return;}
+  document.getElementById('admin-pw').value='';
+  document.getElementById('login-err').style.display='none';
+  document.getElementById('login-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('admin-pw').focus(),150);
+}
+function checkAdmin(){
+  if(document.getElementById('admin-pw').value===ADMIN_PASSWORD){
+    isAdmin=true;
+    closeModal('login-modal');
+    document.getElementById('admin-bar').classList.add('show');
+    document.getElementById('admin-toggle').innerHTML='&#9881; Admin &#10003;';
+    document.getElementById('admin-toggle').style.cssText='color:var(--admin);background:var(--admin-bg);border-color:var(--admin-border)';
+    render();toast('Admin mode activated','info');
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('admin-pw').value='';
+    document.getElementById('admin-pw').focus();
+  }
+}
+function exitAdmin(){
+  isAdmin=false;
+  document.getElementById('admin-bar').classList.remove('show');
+  document.getElementById('admin-toggle').innerHTML='&#9881; Admin';
+  document.getElementById('admin-toggle').style.cssText='';
+  render();toast('Exited admin mode','info');
+}
+
+// ADD LEAD
+function openAddLead(){
+  if(!isAdmin){toast('Admin access required','err');return;}
+  ['f-name','f-role','f-company','f-email','f-city','f-linkedin','f-notes'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('f-score').value=80;
+  document.getElementById('f-score-val').textContent='80';
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(),150);
+}
+function saveManualLead(){
+  const name=document.getElementById('f-name').value.trim();
+  const role=document.getElementById('f-role').value.trim();
+  const company=document.getElementById('f-company').value.trim();
+  if(!name||!role||!company){toast('Name, role & company are required','err');return;}
+  const maxId=Math.max(...allLeads.map(l=>l.id),0);
+  const lead={
+    id:maxId+1,name,role,company,
+    email:document.getElementById('f-email').value.trim(),
+    industry:document.getElementById('f-ind').value,
+    size:document.getElementById('f-size').value,
+    city:document.getElementById('f-city').value.trim()||'US',
+    fund:document.getElementById('f-fund').value,
+    score:parseInt(document.getElementById('f-score').value),
+    initials:ini(name),
+    linkedin:document.getElementById('f-linkedin').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),
+    manual:true,
+  };
+  allLeads=[lead,...allLeads];
+  closeModal('add-modal');
+  applyFilters();
+  toast(`${name} added successfully`,'ok');
+}
+
+// EMAIL MODAL
+async function openEmail(id){
+  emailLead=allLeads.find(l=>l.id===id);
+  if(!emailLead) return;
+  document.getElementById('em-title').textContent='Email '+emailLead.name;
+  document.getElementById('em-sub').textContent=emailLead.role+' at '+emailLead.company;
+  document.getElementById('em-to').value=emailLead.email||'';
+  document.getElementById('em-subject').value='';
+  document.getElementById('em-body').value='';
+  document.getElementById('send-status').style.display='none';
+  document.getElementById('email-modal').classList.add('open');
+  await generateEmailDraft(emailLead);
+}
+
+async function generateEmailDraft(l){
+  const ta=document.getElementById('em-body'),gm=document.getElementById('gen-msg');
+  ta.value='';gm.style.display='block';gm.textContent='✦ Generating with AI…';
+  try{
+    const res=await fetch(API_URL,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:MODEL,max_tokens:350,messages:[{role:'user',content:`Write a short personalized cold outreach email (under 120 words) for ${l.name}, ${l.role} at ${l.company} (${l.industry}, ${l.size} employees, ${l.fund} stage, ${l.city||'US'}). Start line 1 with "Subject: [subject]", blank line, then email body. No placeholders — complete ready-to-send email.`}]})
+    });
+    const data=await res.json();
+    const text=(data.content||[]).map(b=>b.text||'').join('');
+    const subLine=text.split('\n').find(ln=>ln.toLowerCase().startsWith('subject:'));
+    if(subLine) document.getElementById('em-subject').value=subLine.replace(/^subject:\s*/i,'').trim();
+    ta.value=text;gm.style.display='none';
+  } catch(e){ta.value='Failed to generate email — write your message above.';gm.style.display='none';}
+}
+
+function copyEmail(){
+  navigator.clipboard.writeText(document.getElementById('em-body').value)
+    .then(()=>toast('Copied to clipboard','ok'))
+    .catch(()=>toast('Copy failed — try manually','err'));
+}
+
+function openMailto(){
+  const to=encodeURIComponent(document.getElementById('em-to').value||'');
+  const sub=encodeURIComponent(document.getElementById('em-subject').value||'');
+  const body=encodeURIComponent(document.getElementById('em-body').value||'');
+  window.open('mailto:'+to+'?subject='+sub+'&body='+body,'_blank');
+}
+
+async function sendEmail(){
+  const to=document.getElementById('em-to').value.trim();
+  const subject=document.getElementById('em-subject').value.trim();
+  const body=document.getElementById('em-body').value.trim();
+  const fromName=document.getElementById('em-from-name').value.trim();
+  const fromEmail=document.getElementById('em-from-email').value.trim();
+  const st=document.getElementById('send-status');
+
+  if(!to){toast('Enter a recipient email','err');return;}
+
+  if(EMAILJS_SERVICE_ID==='YOUR_SERVICE_ID'){
+    st.textContent='EmailJS not configured yet — opening in mail app instead…';
+    st.className='send-status info';st.style.display='block';
+    setTimeout(openMailto,700);return;
+  }
+
+  st.textContent='Sending…';st.className='send-status';st.style.cssText='display:block';
+  try{
+    await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{
+      to_email:to,to_name:emailLead?emailLead.name:to,
+      subject,message:body,
+      from_name:fromName||'LeadFinder User',
+      reply_to:fromEmail||''
+    });
+    st.textContent='✓ Email sent successfully!';st.className='send-status ok';st.style.display='block';
+    toast('Email sent!','ok');
+  } catch(e){
+    st.textContent='Send failed: '+(e.text||e.message||'Check your EmailJS configuration');
+    st.className='send-status err';st.style.display='block';
+    toast('Send failed','err');
+  }
+}
+
+// AI GENERATE
+async function generateMore(){
+  const ind=activeInd||'mixed US industries (SaaS,Fintech,Healthcare,E-commerce,Agency,Other)';
+  const size=activeSize==='All'?'any':activeSize;
+  const fund=activeFund==='All'?'any':activeFund;
+  const st=document.getElementById('ai-status');
+  st.textContent='Generating…';
+  try{
+    const res=await fetch(API_URL,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:MODEL,max_tokens:2500,messages:[{role:'user',content:`Generate 15 realistic fictional US B2B lead profiles. Industry: ${ind}. Size: ${size}. Stage: ${fund}. Reply ONLY with a valid JSON array, no markdown. Each object: {id,name,role,company,industry(SaaS|Fintech|Healthcare|E-commerce|Agency|Other),size("1-50"|"51-200"|"201-1000"|"1000+"),city(US city+state),fund(Bootstrapped|Seed|"Series A"|"Series B+"|Public),score(55-97),initials(2chars),email(realistic work email)}.`}]})
+    });
+    const data=await res.json();
+    const text=(data.content||[]).map(b=>b.text||'').join('');
+    let parsed;
+    try{parsed=JSON.parse(text.replace(/```json|```/g,'').trim());}
+    catch(e){const m=text.match(/\[[\s\S]*\]/);parsed=m?JSON.parse(m[0]):[];}
+    if(Array.isArray(parsed)&&parsed.length){
+      const maxId=Math.max(...allLeads.map(l=>l.id),0);
+      parsed.forEach((l,i)=>{l.id=maxId+i+1;l.initials=l.initials||ini(l.name);});
+      allLeads=[...parsed,...allLeads];
+      st.textContent='+'+parsed.length+' added';
+      setTimeout(()=>st.textContent='',3000);
+      applyFilters();toast(parsed.length+' new leads added','ok');
+    } else {st.textContent='No leads generated';setTimeout(()=>st.textContent='',3000);}
+  } catch(e){st.textContent='Error. Try again.';setTimeout(()=>st.textContent='',3000);}
+}
+
+document.getElementById('admin-pw').addEventListener('keydown',e=>{if(e.key==='Enter')checkAdmin();});
+render();
+</script>
+</body>
+</html>
